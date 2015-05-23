@@ -54,8 +54,6 @@ public class ServerConnection implements Server
     {
         if ( !ch.isClosed() )
         {
-            // TODO: Can we just use a future here?
-            unsafe().sendPacket( new Kick( ComponentSerializer.toString( reason ) ) );
             ch.getHandle().eventLoop().schedule( new Runnable()
             {
                 @Override
