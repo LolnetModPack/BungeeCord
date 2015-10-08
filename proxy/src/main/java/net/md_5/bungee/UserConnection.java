@@ -161,6 +161,7 @@ public final class UserConnection implements ProxiedPlayer
         tabListHandler = new ServerUnique( this );
 
         Collection<String> g = bungee.getConfigurationAdapter().getGroups( name );
+        g.addAll( bungee.getConfigurationAdapter().getGroups( getUniqueId().toString() ) );
         for ( String s : g )
         {
             addGroups( s );
@@ -584,7 +585,7 @@ public final class UserConnection implements ProxiedPlayer
 
     public void setCompressionThreshold(int compressionThreshold)
     {
-        if ( ch.getHandle().isActive() && this.compressionThreshold == -1 )
+        if ( ch.getHandle().isActive() && this.compressionThreshold == -1 && getPendingConnection().getVersion() >= ProtocolConstants.MINECRAFT_1_8 )
         {
             this.compressionThreshold = compressionThreshold;
             unsafe.sendPacket( new SetCompression( compressionThreshold ) );
