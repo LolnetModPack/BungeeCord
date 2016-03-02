@@ -102,6 +102,10 @@ public final class UserConnection implements ProxiedPlayer
     private int gamemode;
     @Getter
     private int compressionThreshold = -1;
+    // Used for trying multiple servers in order
+    @Getter
+    @Setter
+    private int lastServerJoined = 0;
     /*========================================================================*/
     private final Collection<String> groups = new CaseInsensitiveSet();
     private final Collection<String> permissions = new CaseInsensitiveSet();
@@ -147,16 +151,16 @@ public final class UserConnection implements ProxiedPlayer
 
         // Blame Mojang for this one
         /*switch ( getPendingConnection().getListener().getTabListType() )
-         {
-         case "GLOBAL":
-         tabListHandler = new Global( this );
-         break;
-         case "SERVER":
-         tabListHandler = new ServerUnique( this );
-         break;
-         default:
-         tabListHandler = new GlobalPing( this );
-         break;
+        {
+            case "GLOBAL":
+                tabListHandler = new Global( this );
+                break;
+            case "SERVER":
+                tabListHandler = new ServerUnique( this );
+                break;
+            default:
+                tabListHandler = new GlobalPing( this );
+                break;
          }*/
         tabListHandler = new ServerUnique( this );
 
