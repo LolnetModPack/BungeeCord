@@ -11,6 +11,9 @@ import com.google.gson.GsonBuilder;
 import net.md_5.bungee.api.Favicon;
 import net.md_5.bungee.api.ServerPing;
 import net.md_5.bungee.api.Title;
+import net.md_5.bungee.api.chat.TranslatableComponent;
+import net.md_5.bungee.chat.TextComponentSerializer;
+import net.md_5.bungee.chat.TranslatableComponentSerializer;
 import net.md_5.bungee.module.ModuleManager;
 import com.google.common.io.ByteStreams;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -141,6 +144,9 @@ public class BungeeCord extends ProxyServer
     private final Logger logger;
     public final Gson gson = new GsonBuilder()
             .registerTypeAdapter( ServerPing.PlayerInfo.class, new PlayerInfoSerializer( ProtocolConstants.MINECRAFT_1_7_6 ) )
+            .registerTypeAdapter( BaseComponent.class, new ComponentSerializer() )
+            .registerTypeAdapter( TextComponent.class, new TextComponentSerializer() )
+            .registerTypeAdapter( TranslatableComponent.class, new TranslatableComponentSerializer() )
             .registerTypeAdapter( Favicon.class, Favicon.getFaviconTypeAdapter() ).create();
     public final Gson gsonLegacy = new GsonBuilder()
             .registerTypeAdapter( ServerPing.PlayerInfo.class, new PlayerInfoSerializer( ProtocolConstants.MINECRAFT_1_7_2 ) )
@@ -172,7 +178,7 @@ public class BungeeCord extends ProxyServer
         // Java uses ! to indicate a resource inside of a jar/zip/other container. Running Bungee from within a directory that has a ! will cause this to muck up.
         Preconditions.checkState( new File( "." ).getAbsolutePath().indexOf( '!' ) == -1, "Cannot use BungeeCord in directory with ! in path." );
 
-        // System.setSecurityManager( new BungeeSecurityManager() );
+        System.setSecurityManager( new BungeeSecurityManager() );
 
         try
         {
