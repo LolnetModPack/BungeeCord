@@ -4,6 +4,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import lombok.Getter;
@@ -52,6 +54,7 @@ public class ServerConnector extends PacketHandler
     private State thisState = State.LOGIN_SUCCESS;
     @Getter
     private ForgeServerHandler handshakeHandler;
+    private boolean obsolete;
 
     private enum State
     {
@@ -62,6 +65,11 @@ public class ServerConnector extends PacketHandler
     @Override
     public void exception(Throwable t) throws Exception
     {
+        if ( obsolete )
+        {
+            return;
+        }
+
         String message = "Exception Connecting:" + Util.exception( t );
         if ( user.getServer() == null )
         {
@@ -189,24 +197,29 @@ public class ServerConnector extends PacketHandler
             // Set tab list size, this sucks balls, TODO: what shall we do about packet mutability
             // Forge allows dimension ID's > 127
             Login modLogin;
-            if ( handshakeHandler != null && handshakeHandler.isServerForge() )
-            {
-                modLogin = new Login( login.getEntityId(), login.getGameMode(), login.getDimension(), login.getDifficulty(),
-                    (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
-            } else
-            {
-                modLogin = new Login( login.getEntityId(), login.getGameMode(), (byte) login.getDimension(), login.getDifficulty(),
-                        (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
-            }
-            user.unsafe().sendPacket( modLogin );
+            
 
             if ( user.getPendingConnection().getVersion() < ProtocolConstants.MINECRAFT_1_8 )
             {
+                if ( handshakeHandler != null && handshakeHandler.isServerForge() )
+                {
+                    modLogin = new Login( login.getEntityId(), login.getGameMode(), login.getDimension(), login.getDifficulty(),
+                            (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
+                } else
+                {
+                    modLogin = new Login( login.getEntityId(), login.getGameMode(), (byte) login.getDimension(), login.getDifficulty(),
+                            (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
+                }
+            user.unsafe().sendPacket( modLogin );
                 MinecraftOutput out = new MinecraftOutput();
                 out.writeStringUTF8WithoutLengthHeaderBecauseDinnerboneStuffedUpTheMCBrandPacket( ProxyServer.getInstance().getName() + " (" + ProxyServer.getInstance().getVersion() + ")" );
                 user.unsafe().sendPacket( new PluginMessage( "MC|Brand", out.toArray(), handshakeHandler.isServerForge() ) );
             } else
             {
+                modLogin = new Login( login.getEntityId(), login.getGameMode(), (byte) login.getDimension(), login.getDifficulty(),
+                    (byte) user.getPendingConnection().getListener().getTabListSize(), login.getLevelType(), login.isReducedDebugInfo() );
+
+            user.unsafe().sendPacket( modLogin );
                 ByteBuf brand = ByteBufAllocator.DEFAULT.heapBuffer();
                 DefinedPacket.writeString( bungee.getName() + " (" + bungee.getVersion() + ")", brand );
                 user.unsafe().sendPacket( new PluginMessage( "MC|Brand", brand.array().clone(), handshakeHandler.isServerForge() ) );
@@ -250,6 +263,7 @@ public class ServerConnector extends PacketHandler
         // TODO: Move this to the connected() method of DownstreamBridge
         target.addPlayer( user );
         user.getPendingConnects().remove( target );
+        user.setServerJoinQueue( null );
         user.setDimensionChange( false );
 
         user.setServer( server );
@@ -271,14 +285,17 @@ public class ServerConnector extends PacketHandler
     @Override
     public void handle(Kick kick) throws Exception
     {
-        ServerInfo def = bungee.getServerInfo( user.getPendingConnection().getListener().getFallbackServer() );
-        if ( Objects.equal( target, def ) )
+        ServerInfo def = user.updateAndGetNextServer( target );
+        ServerKickEvent event = new ServerKickEvent( user, target, ComponentSerializer.parse( kick.getMessage() ), def, ServerKickEvent.State.CONNECTING );
+        if ( event.getKickReason().toLowerCase().contains( "outdated" ) && def != null )
         {
-            def = null;
+            // Pre cancel the event if we are going to try another server
+            event.setCancelled( true );
         }
-        ServerKickEvent event = bungee.getPluginManager().callEvent( new ServerKickEvent( user, target, ComponentSerializer.parse( kick.getMessage() ), def, ServerKickEvent.State.CONNECTING ) );
+        bungee.getPluginManager().callEvent( event );
         if ( event.isCancelled() && event.getCancelServer() != null )
         {
+            obsolete = true;
             user.connect( event.getCancelServer() );
             throw CancelSendSignal.INSTANCE;
         }
@@ -327,15 +344,9 @@ public class ServerConnector extends PacketHandler
             }
         }
 
-        // We must bypass our handler once handshake is complete in order to send DimensionRegisterPacket's during Login.
-        if ( !handshakeHandler.isHandshakeComplete() && ( pluginMessage.getTag().equals( ForgeConstants.FML_HANDSHAKE_TAG ) || pluginMessage.getTag().equals( ForgeConstants.FORGE_REGISTER ) ) )
+        if ( pluginMessage.getTag().equals( ForgeConstants.FML_HANDSHAKE_TAG ) || pluginMessage.getTag().equals( ForgeConstants.FORGE_REGISTER ) )
         {
-            handshakeHandler.handle( pluginMessage );
-            if ( user.getForgeClientHandler().checkUserOutdated() )
-            {
-                ch.close();
-                user.getPendingConnects().remove( target );
-            }
+            this.handshakeHandler.handle( pluginMessage );
 
             // We send the message as part of the handler, so don't send it here.
             throw CancelSendSignal.INSTANCE;
