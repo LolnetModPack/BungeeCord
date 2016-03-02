@@ -32,7 +32,7 @@ public abstract class DefinedPacket
 
         return new String( b, Charsets.UTF_8 );
     }
-
+    
     public static void writeArrayLegacy(byte[] b, ByteBuf buf, boolean allowExtended)
     {
         // (Integer.MAX_VALUE & 0x1FFF9A ) = 2097050 - Forge's current upper limit

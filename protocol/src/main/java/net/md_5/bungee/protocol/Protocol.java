@@ -54,7 +54,6 @@ public enum Protocol
             {
 
                 {
-                    
                     TO_CLIENT.registerPacket( 0x00, 0x1F, KeepAlive.class );
                     TO_CLIENT.registerPacket( 0x01, 0x23, Login.class );
                     TO_CLIENT.registerPacket( 0x02, 0x0F, Chat.class );
@@ -74,7 +73,8 @@ public enum Protocol
                     TO_SERVER.registerPacket( 0x01, 0x02, Chat.class );
                     TO_SERVER.registerPacket( 0x14, 0x01, TabCompleteRequest.class );
                     TO_SERVER.registerPacket( 0x15, 0x04, ClientSettings.class );
-                    TO_SERVER.registerPacket( 0x17, 0x09, PluginMessage.class );                }
+                    TO_SERVER.registerPacket( 0x17, 0x09, PluginMessage.class );
+                }
             },
     // 1
     STATUS
@@ -124,12 +124,6 @@ public enum Protocol
         private final Class<? extends DefinedPacket>[] packetClasses = new Class[ MAX_PACKET_ID ];
         private final Constructor<? extends DefinedPacket>[] packetConstructors = new Constructor[ MAX_PACKET_ID ];
 
-
-        public boolean hasPacket(int id)
-        {
-            return id >= 0 && id < MAX_PACKET_ID && packetConstructors[id] != null;
-        }
-        
         private final TIntObjectMap<TIntIntMap> packetRemap = new TIntObjectHashMap<>();
         private final TIntObjectMap<TIntIntMap> packetRemapInv = new TIntObjectHashMap<>();
 
@@ -166,7 +160,7 @@ public enum Protocol
                 throw new BadPacketException( "Could not construct packet with id " + id, ex );
             }
         }
-        
+
         protected final void registerPacket(int id, Class<? extends DefinedPacket> packetClass)
         {
             registerPacket( id, id, packetClass );
@@ -183,6 +177,7 @@ public enum Protocol
             }
             packetClasses[id] = packetClass;
             packetMap.put( packetClass, id );
+
             packetRemap.get( ProtocolConstants.MINECRAFT_1_8 ).put( id, id );
             packetRemapInv.get( ProtocolConstants.MINECRAFT_1_8 ).put( id, id );
             packetRemap.get( ProtocolConstants.MINECRAFT_1_9 ).put( newId, id );
@@ -196,11 +191,17 @@ public enum Protocol
             packetConstructors[id] = null;
         }
 
-        final int getId(Class<? extends DefinedPacket> packet)
+        final int getId(Class<? extends DefinedPacket> packet, int protocol)
         {
             Preconditions.checkArgument( packetMap.containsKey( packet ), "Cannot get ID for packet " + packet );
 
-            return packetMap.get( packet );
+            int id = packetMap.get( packet );
+            TIntIntMap remap = packetRemapInv.get( protocol );
+            if ( remap != null )
+            {
+                return remap.get( id );
+            }
+            return id;
         }
     }
 }
