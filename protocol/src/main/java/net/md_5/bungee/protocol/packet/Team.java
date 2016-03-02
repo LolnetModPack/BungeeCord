@@ -57,7 +57,7 @@ public class Team extends DefinedPacket
             }
             if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_9 )
             {
-                collisionRule = readString( buf );
+                collisionRule = readString(buf);
             }
         }
         if ( mode == 0 || mode == 3 || mode == 4 )
@@ -89,7 +89,7 @@ public class Team extends DefinedPacket
             }
             if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_9 )
             {
-                writeString( collisionRule, buf );
+                writeString( collisionRule, buf);
             }
         }
         if ( mode == 0 || mode == 3 || mode == 4 )

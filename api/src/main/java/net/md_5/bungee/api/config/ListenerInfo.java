@@ -1,11 +1,8 @@
 package net.md_5.bungee.api.config;
 
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Map;
-import lombok.AccessLevel;
 import lombok.Data;
-import lombok.Getter;
 
 /**
  * Class representing the configuration of a server listener. Used for allowing
@@ -32,10 +29,14 @@ public class ListenerInfo
      */
     private final int tabListSize;
     /**
-     * List of servers in order of join attempt. First attempt is the first
-     * element, second attempt is the next element, etc etc.
+     * Name of the server which users will be taken to by default.
      */
-    private final List<String> serverPriority;
+    private final String defaultServer;
+    /**
+     * Name of the server which users will be taken when current server goes
+     * down.
+     */
+    private final String fallbackServer;
     /**
      * Whether reconnect locations will be used, or else the user is simply
      * transferred to the default server on connect.
@@ -67,29 +68,4 @@ public class ListenerInfo
      * Whether to enable udp query.
      */
     private final boolean queryEnabled;
-
-    /**
-     * Gets the highest priority server to join.
-     *
-     * @return default server
-     * @deprecated replaced by {@link #serverPriority}
-     */
-    @Deprecated
-    public String getDefaultServer()
-    {
-        return serverPriority.get( 0 );
-    }
-
-    /**
-     * Gets the second highest priority server to join, or else the highest
-     * priority.
-     *
-     * @return fallback server
-     * @deprecated replaced by {@link #serverPriority}
-     */
-    @Deprecated
-    public String getFallbackServer()
-    {
-        return ( serverPriority.size() > 1 ) ? serverPriority.get( 1 ) : getDefaultServer();
-    }
 }

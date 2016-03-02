@@ -143,7 +143,6 @@ public class ServerConnector extends PacketHandler
     @Override
     public void handle(SetCompression setCompression) throws Exception
     {
-        user.setCompressionThreshold( setCompression.getThreshold() );
         ch.setCompressionThreshold( setCompression.getThreshold() );
     }
 
