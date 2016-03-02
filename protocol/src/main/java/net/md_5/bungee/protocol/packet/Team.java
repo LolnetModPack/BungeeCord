@@ -25,6 +25,7 @@ public class Team extends DefinedPacket
     private String prefix;
     private String suffix;
     private String nameTagVisibility;
+    private String collisionRule;
     private byte color;
     private byte friendlyFire;
     private String[] players;
@@ -34,7 +35,6 @@ public class Team extends DefinedPacket
      */
     public Team(String name)
     {
-        this();
         this.name = name;
         this.mode = 1;
     }
@@ -54,6 +54,10 @@ public class Team extends DefinedPacket
             {
                 nameTagVisibility = readString( buf );
                 color = buf.readByte();
+            }
+            if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_9 )
+            {
+                collisionRule = readString( buf );
             }
         }
         if ( mode == 0 || mode == 3 || mode == 4 )
@@ -82,6 +86,10 @@ public class Team extends DefinedPacket
             {
                 writeString( nameTagVisibility, buf );
                 buf.writeByte( color );
+            }
+            if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_9 )
+            {
+                writeString( collisionRule, buf );
             }
         }
         if ( mode == 0 || mode == 3 || mode == 4 )
